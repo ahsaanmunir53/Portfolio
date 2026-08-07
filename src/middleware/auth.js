@@ -43,18 +43,47 @@ function configReport() {
       (process.env.ADMIN_PASSWORD_HASH || "").trim() ||
       (process.env.ADMIN_PASSWORD || "").trim()
     ),
-    passwordHashed: Boolean((process.env.ADMIN_PASSWORD_HASH || "").trim()),
+    passwordHashed: looksHashed((process.env.ADMIN_PASSWORD_HASH || "").trim()),
+    hashFieldHoldsPlaintext:
+      Boolean((process.env.ADMIN_PASSWORD_HASH || "").trim()) &&
+      !looksHashed((process.env.ADMIN_PASSWORD_HASH || "").trim()),
     sessionSecret: Boolean((process.env.SESSION_SECRET || "").trim()),
   };
 }
+
+/* A bcrypt hash always starts with $2a$, $2b$ or $2y$ and is 60 characters.
+   Anything else in ADMIN_PASSWORD_HASH is a plain password that was put in
+   the wrong box - an easy mistake, and one that used to lock the account
+   permanently because bcrypt.compare can never match a non-hash. */
+const BCRYPT = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/;
+
+function looksHashed(value) {
+  return BCRYPT.test(value);
+}
+
+let hashWarned = false;
 
 async function verifyCredentials(username, password) {
   const wantUser = (process.env.ADMIN_USERNAME || "admin").trim();
   const hash = (process.env.ADMIN_PASSWORD_HASH || "").trim();
   const plain = (process.env.ADMIN_PASSWORD || "").trim();
 
-  if (username !== wantUser) return false;
-  if (hash) return bcrypt.compare(password, hash);
+  /* Usernames are not secrets, and a stray capital or trailing space is not
+     a security event - it is half an hour of someone's evening. */
+  const given = String(username || "").trim().toLowerCase();
+  if (given !== wantUser.toLowerCase()) return false;
+
+  if (hash) {
+    if (looksHashed(hash)) return bcrypt.compare(password, hash);
+    if (!hashWarned) {
+      hashWarned = true;
+      console.log("[warn] ADMIN_PASSWORD_HASH does not contain a bcrypt hash, so it is");
+      console.log("[warn] being treated as a plain password. Rename the variable to");
+      console.log("[warn] ADMIN_PASSWORD, or run: node src/hash.js \"your password\"");
+    }
+    return password === hash;
+  }
+
   if (plain) return password === plain;
   return false;
 }
@@ -94,6 +123,7 @@ function requireAdmin(req, res, next) {
 
 module.exports = {
   configReport,
+  looksHashed,
   verifyCredentials,
   issue,
   clear,

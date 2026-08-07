@@ -68,7 +68,13 @@ function banner(mode) {
   if (!cfg.sessionSecret) {
     warn.push("SESSION_SECRET is unset - you will be signed out on every restart.");
   }
-  if (cfg.adminPassword && !cfg.passwordHashed) {
+  if (cfg.hashFieldHoldsPlaintext) {
+    warn.push(
+      "ADMIN_PASSWORD_HASH holds a plain password, not a bcrypt hash.\n" +
+      "        Sign-in still works, but rename that variable to ADMIN_PASSWORD,\n" +
+      "        or replace its value with the output of: node src/hash.js \"your password\""
+    );
+  } else if (cfg.adminPassword && !cfg.passwordHashed) {
     warn.push("ADMIN_PASSWORD is plaintext - run `node src/hash.js \"your password\"` and use ADMIN_PASSWORD_HASH.");
   }
   if (mode === "json" && process.env.NODE_ENV === "production") {

@@ -529,6 +529,13 @@
         $("#signinBtn").disabled = true;
         return;
       }
+      if (cfg.hashFieldHoldsPlaintext && box) {
+        box.textContent =
+          "Note: ADMIN_PASSWORD_HASH holds a plain password rather than a " +
+          "bcrypt hash. Sign-in works, but rename that variable to " +
+          "ADMIN_PASSWORD in your host's settings.";
+        return;
+      }
       if (!cfg.sessionSecret && box) {
         box.textContent =
           "Heads up: SESSION_SECRET is not set, so you will be signed out " +
