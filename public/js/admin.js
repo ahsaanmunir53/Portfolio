@@ -39,6 +39,30 @@
 
   /* ── sign in ─────────────────────────────────────────────────── */
 
+  /* If credentials ever reached the URL - an older build submitted the form
+     as a GET - wipe them from the address bar and the history entry, and say
+     so, because a password that has been in a URL should be changed. */
+  (function scrubUrl() {
+    var q = window.location.search;
+    if (!q || q.indexOf("password=") < 0) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    var box = $("#signinErr");
+    if (box) {
+      box.textContent =
+        "Your password appeared in the address bar. Remove it from your browser " +
+        "history and change ADMIN_PASSWORD, then redeploy.";
+    }
+  })();
+
+  /* Server-side redirects put a message here after a no-JS form post. */
+  (function showRedirectError() {
+    var m = /[?&]e=([^&]+)/.exec(window.location.search);
+    if (!m) return;
+    var box = $("#signinErr");
+    if (box) box.textContent = decodeURIComponent(m[1].replace(/\+/g, " "));
+    window.history.replaceState({}, "", window.location.pathname);
+  })();
+
   var form = $("#signin");
   form.addEventListener("submit", function (e) {
     e.preventDefault();
@@ -495,10 +519,30 @@
     });
   }
 
+  function preflight() {
+    return api("/auth/config").then(function (cfg) {
+      var box = $("#signinErr");
+      if (!cfg.adminPassword && box) {
+        box.textContent =
+          "The server has no admin password set. Add ADMIN_PASSWORD_HASH in " +
+          "your host's environment settings and redeploy.";
+        $("#signinBtn").disabled = true;
+        return;
+      }
+      if (!cfg.sessionSecret && box) {
+        box.textContent =
+          "Heads up: SESSION_SECRET is not set, so you will be signed out " +
+          "whenever the server restarts. Sign-in still works.";
+      }
+    }).catch(function () { /* older server, no config route */ });
+  }
+
   api("/auth/me").then(function (me) {
     if (me.user) return boot();
-    $("#u").focus();
-  }).catch(function () { /* show the sign-in form */ });
+    return preflight().then(function () { $("#u").focus(); });
+  }).catch(function () {
+    preflight();
+  });
 
   // Unused by design: SITE_INPUTS documents the field set for future edits.
   void SITE_INPUTS;

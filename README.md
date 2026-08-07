@@ -65,6 +65,21 @@ entered in the admin panel is gone by morning. A free MongoDB Atlas cluster
 In Atlas, allow access from anywhere (`0.0.0.0/0`) under Network Access —
 Render's outbound IPs are not fixed on the free plan.
 
+### If the admin panel will not open
+
+Visit `/api/auth/config` on your deployed site. It returns booleans only, no
+values:
+
+```json
+{"storage":"mongo","adminUser":true,"adminPassword":true,
+ "passwordHashed":true,"sessionSecret":true}
+```
+
+`adminPassword: false` is the usual cause — the environment variable is
+missing or misspelled, so every sign-in is refused. `storage: "json"` in
+production means `MONGODB_URI` never took effect. The sign-in screen also
+reports both of these before you type anything.
+
 ## Cover images
 
 The admin panel resizes each upload to 1200px wide and re-encodes it as WebP

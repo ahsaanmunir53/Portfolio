@@ -55,24 +55,30 @@ app.use((err, req, res, next) => {
 });
 
 function banner(mode) {
+  const cfg = require("./middleware/auth").configReport();
+  const stop = [];
   const warn = [];
-  if (!process.env.SESSION_SECRET) {
-    warn.push("SESSION_SECRET is unset - sessions use a known dev key.");
+
+  if (!cfg.adminPassword) {
+    stop.push(
+      "No admin password. The admin panel will refuse every sign-in until you set\n" +
+      "        ADMIN_PASSWORD_HASH (or ADMIN_PASSWORD) in the environment."
+    );
   }
-  if (!process.env.ADMIN_PASSWORD_HASH && process.env.ADMIN_PASSWORD) {
-    warn.push("ADMIN_PASSWORD is plaintext - run `node src/hash.js <password>` and use ADMIN_PASSWORD_HASH.");
+  if (!cfg.sessionSecret) {
+    warn.push("SESSION_SECRET is unset - you will be signed out on every restart.");
   }
-  if (!process.env.ADMIN_PASSWORD_HASH && !process.env.ADMIN_PASSWORD) {
-    warn.push("No admin password set - the admin panel cannot be opened. Set ADMIN_PASSWORD.");
+  if (cfg.adminPassword && !cfg.passwordHashed) {
+    warn.push("ADMIN_PASSWORD is plaintext - run `node src/hash.js \"your password\"` and use ADMIN_PASSWORD_HASH.");
   }
   if (mode === "json" && process.env.NODE_ENV === "production") {
-    warn.push("Running in production on the JSON store. Set MONGODB_URI or your edits will vanish.");
+    stop.push("Running in production on the JSON store. Set MONGODB_URI or every edit vanishes on restart.");
   }
-  if (warn.length) {
-    console.log("");
-    warn.forEach((w) => console.log("[warn] " + w));
-    console.log("");
-  }
+
+  if (stop.length || warn.length) console.log("");
+  stop.forEach((s) => console.log("[STOP] " + s));
+  warn.forEach((w) => console.log("[warn] " + w));
+  if (stop.length || warn.length) console.log("");
 }
 
 (async function start() {

@@ -15,13 +15,37 @@ const jwt = require("jsonwebtoken");
 const COOKIE = "pf_session";
 const MAX_AGE = 1000 * 60 * 60 * 12;
 
+/* A missing SESSION_SECRET used to throw, which turned every production
+   login into a 500 with no explanation - the admin panel simply refused to
+   open and nothing said why. Now the server generates one at boot and says
+   so loudly. Sessions do not survive a restart until a real secret is set,
+   which is a nuisance rather than a wall. */
+const EPHEMERAL = require("crypto").randomBytes(48).toString("hex");
+let warned = false;
+
 function secret() {
   const s = (process.env.SESSION_SECRET || "").trim();
   if (s) return s;
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("SESSION_SECRET must be set in production.");
+  if (!warned) {
+    warned = true;
+    console.log("[warn] SESSION_SECRET is not set. Using a temporary key - you");
+    console.log("[warn] will be signed out every time the server restarts.");
   }
-  return "dev-only-insecure-secret";
+  return EPHEMERAL;
+}
+
+/** What is configured, for the startup banner and the health endpoint.
+ *  Never returns a secret or a hash, only whether one exists. */
+function configReport() {
+  return {
+    adminUser: Boolean((process.env.ADMIN_USERNAME || "").trim()),
+    adminPassword: Boolean(
+      (process.env.ADMIN_PASSWORD_HASH || "").trim() ||
+      (process.env.ADMIN_PASSWORD || "").trim()
+    ),
+    passwordHashed: Boolean((process.env.ADMIN_PASSWORD_HASH || "").trim()),
+    sessionSecret: Boolean((process.env.SESSION_SECRET || "").trim()),
+  };
 }
 
 async function verifyCredentials(username, password) {
@@ -69,6 +93,7 @@ function requireAdmin(req, res, next) {
 }
 
 module.exports = {
+  configReport,
   verifyCredentials,
   issue,
   clear,

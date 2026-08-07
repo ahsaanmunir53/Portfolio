@@ -11,7 +11,7 @@
 
 const express = require("express");
 const store = require("../store");
-const { verifyCredentials, issue, clear, currentUser, requireAdmin } =
+const { verifyCredentials, issue, clear, currentUser, requireAdmin, configReport } =
   require("../middleware/auth");
 
 const router = express.Router();
@@ -130,16 +130,49 @@ const SHAPES = {
 /* ---------------------------------------------------------------- auth ---- */
 
 router.post("/auth/login", async (req, res) => {
+  /* This route answers two callers. Normally the admin page posts JSON via
+     fetch. But the sign-in form also posts to this URL natively, which is the
+     safety net for when the page script has not loaded yet - without an
+     action the browser would GET the form and put the password in the URL
+     bar. A native post is redirected back to /admin so the user sees a page,
+     not raw JSON. */
+  const wantsHtml =
+    !req.is("application/json") &&
+    String(req.get("accept") || "").indexOf("text/html") >= 0;
+
   const { username, password } = req.body || {};
-  if (!username || !password) {
-    return res.status(400).json({ error: "Enter a username and password." });
+
+  function fail(status, message) {
+    if (wantsHtml) return res.redirect("/admin?e=" + encodeURIComponent(message));
+    return res.status(status).json({ error: message });
   }
-  const ok = await verifyCredentials(String(username), String(password));
-  if (!ok) {
-    return res.status(401).json({ error: "That username and password don't match." });
+
+  if (!username || !password) return fail(400, "Enter a username and password.");
+
+  const cfg = configReport();
+  if (!cfg.adminPassword) {
+    return fail(503,
+      "No admin password is configured on the server. Set ADMIN_PASSWORD_HASH " +
+      "(or ADMIN_PASSWORD) in the environment and redeploy.");
   }
+
+  let ok = false;
+  try {
+    ok = await verifyCredentials(String(username), String(password));
+  } catch (err) {
+    return fail(500, "Could not check those credentials: " + err.message);
+  }
+
+  if (!ok) return fail(401, "That username and password don't match.");
+
   issue(res, String(username));
+  if (wantsHtml) return res.redirect("/admin");
   res.json({ ok: true, user: String(username) });
+});
+
+/** Which settings are present. Booleans only - never a value. */
+router.get("/auth/config", (req, res) => {
+  res.json(Object.assign({ storage: store.getMode() }, configReport()));
 });
 
 router.post("/auth/logout", (req, res) => {
