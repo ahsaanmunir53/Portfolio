@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin — Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+<div id="gate" class="gate">
+  <form class="signin" id="signin" autocomplete="on">
+    <h1>Portfolio admin</h1>
+    <p class="muted">Sign in to edit the site.</p>
+    <label for="u">Username</label>
+    <input id="u" name="username" type="text" autocomplete="username" required>
+    <label for="p">Password</label>
+    <input id="p" name="password" type="password" autocomplete="current-password" required>
+    <button class="btn primary" type="submit" id="signinBtn">Sign in</button>
+    <p class="err" id="signinErr"></p>
+    <a class="back" href="/">&#8592; back to site</a>
+  </form>
+</div>
+
+<div id="app" class="app hidden">
+
+  <header class="top">
+    <div class="left">
+      <strong>Portfolio admin</strong>
+      <span class="store" id="storeBadge"></span>
+    </div>
+    <div class="right">
+      <a class="btn ghost" href="/" target="_blank" rel="noopener">View site &#8599;</a>
+      <button class="btn ghost" id="logout" type="button">Sign out</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab on" data-tab="projects" type="button">Projects</button>
+    <button class="tab" data-tab="experience" type="button">Experience</button>
+    <button class="tab" data-tab="skills" type="button">Skills</button>
+    <button class="tab" data-tab="site" type="button">Site &amp; contact</button>
+  </nav>
+
+  <main class="sheet">
+
+    <!-- PROJECTS -->
+    <section class="panel on" data-panel="projects">
+      <div class="panel-head">
+        <div>
+          <h2>Projects</h2>
+          <p class="muted">Drag a row to reorder. The order here is the order on the site.</p>
+        </div>
+        <button class="btn primary" id="addProject" type="button">+ New project</button>
+      </div>
+      <div class="rows" id="projectRows"></div>
+    </section>
+
+    <!-- EXPERIENCE -->
+    <section class="panel" data-panel="experience">
+      <div class="panel-head">
+        <div>
+          <h2>Experience</h2>
+          <p class="muted">Newest first reads best. Drag to reorder.</p>
+        </div>
+        <button class="btn primary" id="addExperience" type="button">+ New role</button>
+      </div>
+      <div class="rows" id="experienceRows"></div>
+    </section>
+
+    <!-- SKILLS -->
+    <section class="panel" data-panel="skills">
+      <div class="panel-head">
+        <div>
+          <h2>Skills</h2>
+          <p class="muted">One group per card. Separate items with commas.</p>
+        </div>
+        <button class="btn primary" id="addSkill" type="button">+ New group</button>
+      </div>
+      <div class="rows" id="skillRows"></div>
+    </section>
+
+    <!-- SITE -->
+    <section class="panel" data-panel="site">
+      <div class="panel-head">
+        <div>
+          <h2>Site &amp; contact</h2>
+          <p class="muted">The headline, the about copy, the numbers, and how people reach you.</p>
+        </div>
+        <button class="btn primary" id="saveSite" type="button">Save changes</button>
+      </div>
+
+      <div class="card">
+        <h3>Header</h3>
+        <div class="grid2">
+          <div class="field"><label for="s_name">Your name</label><input id="s_name" type="text"></div>
+          <div class="field"><label for="s_role">Role line</label><input id="s_role" type="text"></div>
+          <div class="field"><label for="s_avail">Availability badge</label><input id="s_avail" type="text"></div>
+          <div class="field"><label for="s_location">Location</label><input id="s_location" type="text"></div>
+        </div>
+        <div class="field"><label for="s_heroLine">Hero paragraph</label><textarea id="s_heroLine" rows="3"></textarea></div>
+        <div class="field">
+          <label for="s_marquee">Scrolling strip</label>
+          <input id="s_marquee" type="text" placeholder="React, Node.js, Python">
+          <span class="help">Comma separated.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>About</h3>
+        <div class="field"><label for="s_aboutTitle">Section heading</label><input id="s_aboutTitle" type="text"></div>
+        <div class="field">
+          <label for="s_about">Paragraphs</label>
+          <textarea id="s_about" rows="9"></textarea>
+          <span class="help">One paragraph per line. Blank lines are ignored.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Numbers</h3>
+        <p class="muted" style="margin-bottom:.9rem">These count up when the section scrolls into view.</p>
+        <div id="statRows"></div>
+        <button class="btn ghost small" id="addStat" type="button">+ Add a number</button>
+      </div>
+
+      <div class="card">
+        <h3>Contact</h3>
+        <div class="grid2">
+          <div class="field"><label for="s_email">Email</label><input id="s_email" type="email"></div>
+          <div class="field"><label for="s_phone">Phone</label><input id="s_phone" type="text"></div>
+          <div class="field"><label for="s_linkedin">LinkedIn URL</label><input id="s_linkedin" type="url"></div>
+          <div class="field"><label for="s_github">GitHub URL</label><input id="s_github" type="url"></div>
+        </div>
+        <div class="field"><label for="s_contactTitle">Contact heading</label><input id="s_contactTitle" type="text"></div>
+        <div class="field"><label for="s_contactLine">Contact paragraph</label><textarea id="s_contactLine" rows="2"></textarea></div>
+        <div class="grid2">
+          <div class="field">
+            <label for="s_cvFile">CV filename</label>
+            <input id="s_cvFile" type="text" placeholder="Ahsaan-Munir-CV.pdf">
+            <span class="help">The file must sit in the <code>public/</code> folder.</span>
+          </div>
+          <div class="field"><label for="s_footer">Footer line</label><input id="s_footer" type="text"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="flash"></div>
+
+<template id="tpl-project">
+  <article class="row" draggable="true">
+    <div class="row-head">
+      <span class="drag" title="Drag to reorder">&#8942;&#8942;</span>
+      <span class="row-title"></span>
+      <span class="pill status"></span>
+      <button class="btn ghost small toggle" type="button">Edit</button>
+    </div>
+    <div class="row-body">
+      <div class="cover-zone">
+        <div class="cover-preview" data-preview>
+          <span class="cover-empty">No cover yet</span>
+          <img alt="" hidden>
+        </div>
+        <div class="cover-acts">
+          <label class="btn ghost small file">
+            Upload cover
+            <input type="file" accept="image/png,image/jpeg,image/webp" hidden data-file>
+          </label>
+          <button class="btn ghost small" type="button" data-clearcover>Remove</button>
+          <span class="help">Resized to 1200px wide WebP in your browser before it uploads.</span>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Title</label><input type="text" data-f="title"></div>
+        <div class="field"><label>Tagline</label><input type="text" data-f="tagline"></div>
+      </div>
+      <div class="field"><label>Description</label><textarea rows="3" data-f="description"></textarea></div>
+      <div class="grid2">
+        <div class="field"><label>Live URL</label><input type="url" data-f="url" placeholder="https://"></div>
+        <div class="field"><label>Repo URL</label><input type="url" data-f="repo" placeholder="https://"></div>
+      </div>
+      <div class="grid4">
+        <div class="field"><label>Initials</label><input type="text" maxlength="3" data-f="initials"></div>
+        <div class="field">
+          <label>Colour</label>
+          <input type="range" min="0" max="360" data-f="hue" class="hue">
+          <span class="swatch" data-swatch></span>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select data-f="status">
+            <option value="live">Live</option>
+            <option value="wip">Building</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+        <div class="field checks">
+          <label class="check"><input type="checkbox" data-f="featured"> Wide tile</label>
+          <label class="check"><input type="checkbox" data-f="visible"> Show on site</label>
+        </div>
+      </div>
+      <div class="field"><label>Tags</label><input type="text" data-f="tags" placeholder="React, Node.js">
+        <span class="help">Comma separated.</span></div>
+      <div class="row-acts">
+        <button class="btn primary small" type="button" data-save>Save</button>
+        <button class="btn danger small" type="button" data-delete>Delete</button>
+        <span class="saved" data-saved></span>
+      </div>
+    </div>
+  </article>
+</template>
+
+<template id="tpl-experience">
+  <article class="row" draggable="true">
+    <div class="row-head">
+      <span class="drag" title="Drag to reorder">&#8942;&#8942;</span>
+      <span class="row-title"></span>
+      <span class="pill status"></span>
+      <button class="btn ghost small toggle" type="button">Edit</button>
+    </div>
+    <div class="row-body">
+      <div class="grid2">
+        <div class="field"><label>Role</label><input type="text" data-f="role"></div>
+        <div class="field"><label>Organisation</label><input type="text" data-f="org"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Period</label><input type="text" data-f="period" placeholder="2026 — Present"></div>
+        <div class="field checks">
+          <label class="check"><input type="checkbox" data-f="current"> Current role</label>
+          <label class="check"><input type="checkbox" data-f="visible"> Show on site</label>
+        </div>
+      </div>
+      <div class="field"><label>Bullet points</label><textarea rows="4" data-f="points"></textarea>
+        <span class="help">One per line.</span></div>
+      <div class="row-acts">
+        <button class="btn primary small" type="button" data-save>Save</button>
+        <button class="btn danger small" type="button" data-delete>Delete</button>
+        <span class="saved" data-saved></span>
+      </div>
+    </div>
+  </article>
+</template>
+
+<template id="tpl-skill">
+  <article class="row" draggable="true">
+    <div class="row-head">
+      <span class="drag" title="Drag to reorder">&#8942;&#8942;</span>
+      <span class="row-title"></span>
+      <span class="pill status"></span>
+      <button class="btn ghost small toggle" type="button">Edit</button>
+    </div>
+    <div class="row-body">
+      <div class="field"><label>Group name</label><input type="text" data-f="group"></div>
+      <div class="field"><label>Items</label><textarea rows="2" data-f="items"></textarea>
+        <span class="help">Comma separated.</span></div>
+      <div class="field checks"><label class="check"><input type="checkbox" data-f="visible"> Show on site</label></div>
+      <div class="row-acts">
+        <button class="btn primary small" type="button" data-save>Save</button>
+        <button class="btn danger small" type="button" data-delete>Delete</button>
+        <span class="saved" data-saved></span>
+      </div>
+    </div>
+  </article>
+</template>
+
+<script src="/js/admin.js"></script>
+</body>
+</html>
