@@ -138,6 +138,9 @@ section{padding:clamp(4rem,9vw,7.5rem) clamp(1rem,5vw,4.2rem);max-width:var(--wr
 .btn-hot:hover{transform:translateY(-3px);background:var(--ember-2)}
 .btn-ghost{border:1.5px solid var(--edge-2);color:var(--ink)}
 .btn-ghost:hover{border-color:var(--ember);color:var(--ember);transform:translateY(-3px)}
+.btn-line{border:1.5px solid transparent;color:var(--muted);text-decoration:underline;
+  text-underline-offset:5px;text-decoration-thickness:1px}
+.btn-line:hover{color:var(--ember);transform:translateY(-3px)}
 
 /* ── hero ───────────────────────────────────────────────────────── */
 .hero{min-height:100svh;display:grid;grid-template-columns:1.06fr .94fr;

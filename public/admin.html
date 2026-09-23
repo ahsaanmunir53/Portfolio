@@ -139,9 +139,18 @@
         <div class="field"><label for="s_contactLine">Contact paragraph</label><textarea id="s_contactLine" rows="2"></textarea></div>
         <div class="grid2">
           <div class="field">
-            <label for="s_cvFile">CV filename</label>
-            <input id="s_cvFile" type="text" placeholder="Ahsaan-Munir-CV.pdf">
-            <span class="help">The file must sit in the <code>public/</code> folder.</span>
+            <label for="s_cvUpload">CV file</label>
+            <input id="s_cvUpload" type="file" accept="application/pdf,.pdf">
+            <span class="help" id="s_cvState">No CV uploaded yet - the copy in <code>public/</code> is being served.</span>
+            <div class="cvacts">
+              <a class="mini" id="s_cvOpen" href="/cv?view=1" target="_blank" rel="noopener">Open current CV</a>
+              <button class="mini danger" id="s_cvClear" type="button">Remove uploaded CV</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="s_cvFile">Or link to a CV elsewhere</label>
+            <input id="s_cvFile" type="text" placeholder="https://drive.google.com/...">
+            <span class="help">Leave this empty to use the uploaded file above.</span>
           </div>
           <div class="field"><label for="s_footer">Footer line</label><input id="s_footer" type="text"></div>
         </div>

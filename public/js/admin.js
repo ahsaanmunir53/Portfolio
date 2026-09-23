@@ -440,11 +440,71 @@
     $("#s_contactTitle").value = site.contactTitle || "";
     $("#s_contactLine").value = site.contactLine || "";
     $("#s_cvFile").value = site.cvFile || "";
+    pendingCv = null;
+    state.pendingCvName = "";
+    if ($("#s_cvUpload")) $("#s_cvUpload").value = "";
+    cvState(site);
     $("#s_footer").value = site.footer || "";
 
     var rows = $("#statRows");
     rows.innerHTML = "";
     (site.stats || []).forEach(function (s) { rows.appendChild(statRow(s)); });
+  }
+
+  /* ── CV upload ───────────────────────────────────────────────── */
+
+  var pendingCv = null; // data URL waiting to be saved, or "" to clear
+
+  function cvState(site) {
+    var note = $("#s_cvState");
+    if (!note) return;
+    if (pendingCv) {
+      note.textContent = "New file ready - press Save to publish it.";
+    } else if (pendingCv === "") {
+      note.textContent = "Will revert to the copy in public/ when you save.";
+    } else if (site && site.hasCv) {
+      var when = site.cvUpdatedAt ? new Date(site.cvUpdatedAt).toLocaleDateString() : "";
+      note.textContent = (site.cvName || "Uploaded CV") + (when ? " - uploaded " + when : "");
+    } else {
+      note.textContent = "No CV uploaded yet - the copy in public/ is being served.";
+    }
+  }
+
+  var cvInput = $("#s_cvUpload");
+  if (cvInput) {
+    cvInput.addEventListener("change", function () {
+      var file = this.files && this.files[0];
+      if (!file) return;
+      if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) {
+        flash("That file is not a PDF.", true);
+        this.value = "";
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        flash("That PDF is over 5MB. Export a smaller one.", true);
+        this.value = "";
+        return;
+      }
+      var reader = new FileReader();
+      reader.onerror = function () { flash("Couldn't read that file.", true); };
+      reader.onload = function () {
+        pendingCv = String(reader.result);
+        state.pendingCvName = file.name;
+        cvState(state.site);
+        flash("PDF loaded. Press Save to publish it.");
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  var cvClear = $("#s_cvClear");
+  if (cvClear) {
+    cvClear.addEventListener("click", function () {
+      pendingCv = "";
+      state.pendingCvName = "";
+      if (cvInput) cvInput.value = "";
+      cvState(state.site);
+    });
   }
 
   $("#addStat").addEventListener("click", function () {
@@ -461,9 +521,7 @@
         label: $("[data-s=label]", r).value
       };
     });
-    api("/admin/site", {
-      method: "PUT",
-      body: JSON.stringify({
+    var body = {
         name: $("#s_name").value,
         role: $("#s_role").value,
         availability: $("#s_avail").value,
@@ -481,9 +539,22 @@
         contactLine: $("#s_contactLine").value,
         cvFile: $("#s_cvFile").value,
         footer: $("#s_footer").value
-      })
+    };
+
+    if (pendingCv !== null) {
+      body.cvData = pendingCv;
+      body.cvName = pendingCv ? (state.pendingCvName || "CV.pdf") : "";
+    }
+
+    api("/admin/site", {
+      method: "PUT",
+      body: JSON.stringify(body)
     }).then(function (saved) {
       state.site = saved;
+      pendingCv = null;
+      state.pendingCvName = "";
+      if ($("#s_cvUpload")) $("#s_cvUpload").value = "";
+      cvState(saved);
       flash("Site saved.");
     }).catch(function (err) {
       flash(err.message, true);

@@ -233,11 +233,16 @@
     var wc = $("#workCount");
     if (wc) wc.textContent = word;
 
-    var cv = safeUrl(site.cvFile) || ("/" + String(site.cvFile || "Ahsaan-Munir-CV.pdf").replace(/^\/+/, ""));
+    /* /cv is served by the server, which sets the download header itself.
+       That matters on phones: a link with the `download` attribute is ignored
+       there and the PDF opens in a cramped built-in viewer instead. */
+    var external = safeUrl(site.cvFile);
     ["#cvTop", "#cvHero", "#cvContact"].forEach(function (id) {
       var node = $(id);
-      if (node) node.setAttribute("href", cv);
+      if (node) node.setAttribute("href", external || "/cv");
     });
+    var viewer = $("#cvView");
+    if (viewer) viewer.setAttribute("href", external || "/cv?view=1");
   }
 
   function renderStrip(items) {

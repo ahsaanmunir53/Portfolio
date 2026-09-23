@@ -36,6 +36,52 @@ app.use(
   })
 );
 
+/* The CV.
+ *
+ * Two reasons this is a route and not a plain static file.
+ *
+ * First, the admin panel can now replace the PDF without a redeploy, so the
+ * bytes live in the store and the file on disk is only the fallback.
+ *
+ * Second, mobile browsers ignore the `download` attribute on a link and hand
+ * the PDF to a built-in viewer, which renders an A4 page at a useless zoom.
+ * Sending Content-Disposition: attachment makes the phone download it instead,
+ * which is what someone tapping "Download CV" actually wanted. Add ?view=1 to
+ * read it in the browser on purpose. */
+app.get("/cv", async (req, res, next) => {
+  try {
+    const site = (await store.getSite()) || {};
+    const inline = req.query.view !== undefined;
+    const name = (site.cvName || site.cvFile || "CV.pdf").replace(/[^\w.\- ]+/g, "");
+
+    if (site.cvData) {
+      const base64 = String(site.cvData).split(",")[1] || "";
+      const buf = Buffer.from(base64, "base64");
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Length", buf.length);
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader(
+        "Content-Disposition",
+        (inline ? "inline" : "attachment") + '; filename="' + name + '"'
+      );
+      return res.end(buf);
+    }
+
+    const fallback = path.join(PUBLIC, String(site.cvFile || "Ahsaan-Munir-CV.pdf").replace(/^\/+/, ""));
+    if (!fallback.startsWith(PUBLIC)) return res.status(400).json({ error: "Bad CV path." });
+    return res.sendFile(fallback, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": (inline ? "inline" : "attachment") + '; filename="' + name + '"',
+      },
+    }, (err) => {
+      if (err) res.status(404).json({ error: "No CV has been uploaded yet." });
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.get("/admin", (req, res) => res.sendFile(path.join(PUBLIC, "admin.html")));
 app.get("/healthz", (req, res) => res.json({ ok: true, storage: store.getMode() }));
 

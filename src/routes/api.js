@@ -19,6 +19,7 @@ const router = express.Router();
 /* ------------------------------------------------------------- helpers ---- */
 
 const MAX_COVER_CHARS = 3_000_000; // ~2.2MB decoded
+const MAX_CV_CHARS = 7_000_000; // ~5MB decoded
 
 function str(v, max) {
   if (v === undefined || v === null) return undefined;
@@ -94,6 +95,23 @@ const SKILL_SHAPE = {
   visible: bool,
 };
 
+function cvField(v) {
+  if (v === undefined) return undefined;
+  const s = String(v);
+  if (s === "") return "";
+  if (s.length > MAX_CV_CHARS) {
+    const err = new Error("That PDF is too large. Keep it under about 5MB.");
+    err.status = 413;
+    throw err;
+  }
+  if (!/^data:application\/pdf;base64,/.test(s)) {
+    const err = new Error("The CV must be a PDF file.");
+    err.status = 400;
+    throw err;
+  }
+  return s;
+}
+
 const SITE_SHAPE = {
   name: (v) => str(v, 80),
   role: (v) => str(v, 120),
@@ -107,6 +125,8 @@ const SITE_SHAPE = {
   linkedin: (v) => str(v, 300),
   github: (v) => str(v, 300),
   cvFile: (v) => str(v, 200),
+  cvData: cvField,
+  cvName: (v) => str(v, 160),
   contactTitle: (v) => str(v, 160),
   contactLine: (v) => str(v, 400),
   footer: (v) => str(v, 300),
@@ -187,6 +207,14 @@ router.get("/auth/me", (req, res) => {
 
 /* -------------------------------------------------------------- public ---- */
 
+/** The CV blob is megabytes. It is served by /cv, never inlined here. */
+function publicSite(site) {
+  const out = Object.assign({}, site || {});
+  out.hasCv = Boolean(out.cvData);
+  delete out.cvData;
+  return out;
+}
+
 router.get("/content", async (req, res, next) => {
   try {
     const [site, projects, experience, skills] = await Promise.all([
@@ -196,7 +224,7 @@ router.get("/content", async (req, res, next) => {
       store.list("skills"),
     ]);
     res.json({
-      site: site || {},
+      site: publicSite(site),
       projects: projects.filter((p) => p.visible !== false),
       experience: experience.filter((e) => e.visible !== false),
       skills: skills.filter((s) => s.visible !== false),
@@ -216,7 +244,13 @@ router.get("/admin/content", requireAdmin, async (req, res, next) => {
       store.list("experience"),
       store.list("skills"),
     ]);
-    res.json({ site: site || {}, projects, experience, skills, storage: store.getMode() });
+    res.json({
+      site: publicSite(site),
+      projects,
+      experience,
+      skills,
+      storage: store.getMode(),
+    });
   } catch (err) {
     next(err);
   }
@@ -271,7 +305,11 @@ router.get("/admin/content", requireAdmin, async (req, res, next) => {
 
 router.put("/admin/site", requireAdmin, async (req, res, next) => {
   try {
-    res.json(await store.saveSite(pick(req.body || {}, SITE_SHAPE)));
+    const payload = pick(req.body || {}, SITE_SHAPE);
+    if (payload.cvData !== undefined) {
+      payload.cvUpdatedAt = payload.cvData ? new Date().toISOString() : "";
+    }
+    res.json(publicSite(await store.saveSite(payload)));
   } catch (err) {
     next(err);
   }
