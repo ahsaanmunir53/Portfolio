@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Opening the app · Ahsaan Munir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--void:#04050b;--slab:#0e1120;--edge:rgba(150,165,225,.13);--edge-2:rgba(150,165,225,.28);
+    --ink:#f2f4fd;--mut:#98a2c9;--dim:#5a6389;--ember:#ff9d3d;--ice:#4fd6ff;--live:#37e0a0;--bad:#ff6b6b;
+    --disp:'Bricolage Grotesque',sans-serif;--body:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace}
+  *{box-sizing:border-box;margin:0}
+  html,body{min-height:100%}
+  body{background:var(--void);color:var(--ink);font-family:var(--body);display:grid;place-items:center;
+    min-height:100vh;padding:24px 16px}
+  .card{width:min(560px,100%);background:var(--slab);border:1px solid var(--edge);border-radius:18px;padding:32px 28px}
+  .kicker{font-family:var(--mono);font-size:.72rem;letter-spacing:.32em;text-transform:uppercase;color:var(--dim)}
+  h1{font-family:var(--disp);font-weight:800;font-size:clamp(1.8rem,6vw,2.4rem);margin:.5rem 0 .35rem;line-height:1.1}
+  .line{color:var(--mut);font-size:1.02rem;line-height:1.5}
+  .bar{position:relative;height:6px;border-radius:6px;background:rgba(150,165,225,.12);overflow:hidden;margin:28px 0 14px}
+  .bar i{position:absolute;inset:0 auto 0 0;width:35%;border-radius:6px;background:linear-gradient(90deg,var(--ember),var(--ice));
+    animation:slide 1.4s ease-in-out infinite}
+  @keyframes slide{0%{left:-35%}100%{left:100%}}
+  @media (prefers-reduced-motion:reduce){.bar i{animation:none;width:100%;opacity:.5}}
+  .status{display:flex;justify-content:space-between;gap:12px;font-size:.95rem;color:var(--mut)}
+  .status b{font-family:var(--mono);color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+  .note{margin-top:18px;font-size:.88rem;line-height:1.55;color:var(--dim)}
+  .links{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
+  .links a{color:var(--ink);text-decoration:none;border:1px solid var(--edge-2);border-radius:10px;padding:9px 14px;font-size:.92rem}
+  .links a:hover{border-color:var(--ember)}
+  .ready .bar i{animation:none;width:100%;background:var(--live)}
+  .failed .bar i{animation:none;width:100%;background:var(--bad)}
+</style>
+</head>
+<body>
+<main class="card" id="card" aria-live="polite">
+  <p class="kicker">Ahsaan Munir · live project</p>
+  <h1 id="name">Opening the app</h1>
+  <p class="line" id="line"></p>
+  <div class="bar" aria-hidden="true"><i></i></div>
+  <div class="status"><span id="state">Waking up the server</span><b id="secs">0s</b></div>
+  <p class="note">This app runs on Render's free plan, which puts the server to sleep after 15 quiet minutes. It is
+    starting now and usually answers in 30 to 60 seconds; the app opens by itself when it is ready.</p>
+  <div class="links">
+    <a id="direct" href="#">Open it now</a>
+    <a href="/#work">Back to the portfolio</a>
+  </div>
+</main>
+<script src="/js/open.js"></script>
+</body>
+</html>

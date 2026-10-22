@@ -271,7 +271,8 @@
     [/job.?match/i, ["https://jobmatch-ai-lee4.onrender.com/api/health"]],
     [/lead.?desk/i, ["https://leaddesk.onrender.com/api/health"]],
     [/lum[eé]ra/i, ["https://lumera-salon.onrender.com/api/health"]],
-    [/triage/i, ["https://triagedesk-r8pt.onrender.com/api/health", "https://triagedesk-ml.onrender.com/health"]]
+    [/triage/i, ["https://triagedesk-r8pt.onrender.com/api/health", "https://triagedesk-ml.onrender.com/health"]],
+    [/docmind|docqa/i, ["https://docqa-3nqw.onrender.com/"]]
   ];
   var woken = {};
   function ping(url) {

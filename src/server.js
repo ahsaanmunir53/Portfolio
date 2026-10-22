@@ -83,6 +83,9 @@ app.get("/cv", async (req, res, next) => {
 });
 
 app.get("/admin", (req, res) => res.sendFile(path.join(PUBLIC, "admin.html")));
+// Waiting room for the apps that are one sleeping server on Render (TriageDesk, DocMind): the page
+// comes from this warm service at once, wakes the app and opens it when it answers.
+app.get("/open/:app", (req, res) => res.sendFile(path.join(PUBLIC, "open.html")));
 app.get("/healthz", (req, res) => res.json({ ok: true, storage: store.getMode() }));
 
 app.use((req, res) => {
