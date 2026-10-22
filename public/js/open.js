@@ -5,20 +5,17 @@
 (function () {
   "use strict";
 
+  // The addresses the server checks are in src/routes/api.js (WAKE).
   var APPS = {
     triagedesk: {
       name: "TriageDesk",
       line: "AI that sorts support tickets and sends them to the right agent.",
-      url: "https://triagedesk-r8pt.onrender.com/",
-      probe: "https://triagedesk-r8pt.onrender.com/api/health",
-      also: ["https://triagedesk-ml.onrender.com/health"]
+      url: "https://triagedesk-r8pt.onrender.com/"
     },
     docmind: {
       name: "DocMind",
       line: "Ask questions of long PDFs and get answers that cite the page.",
-      url: "https://docqa-3nqw.onrender.com/",
-      probe: "https://docqa-3nqw.onrender.com/",
-      also: []
+      url: "https://docqa-3nqw.onrender.com/"
     }
   };
 
@@ -46,35 +43,41 @@
     $("secs").textContent = Math.round((Date.now() - started) / 1000) + "s";
   }, 1000);
 
-  function hit(url) {
-    // no-cors: any answer counts, whatever the status. While the server starts, Render holds the
-    // request, so this resolves when the app is up.
+  // The portfolio's server does the waiting (/api/wake/<key>) and answers when the app is up.
+  // Checking from here would not work for every app: some send Cross-Origin-Resource-Policy,
+  // and the browser then rejects the answer even when the server is running.
+  function ask() {
     var ctl = "AbortController" in window ? new AbortController() : null;
-    var t = ctl ? setTimeout(function () { ctl.abort(); }, 100000) : null;
-    return fetch(url, { mode: "no-cors", cache: "no-store", signal: ctl ? ctl.signal : undefined })
+    var t = ctl ? setTimeout(function () { ctl.abort(); }, 125000) : null;
+    return fetch("/api/wake/" + key, { cache: "no-store", signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { return r.json(); })
       .finally(function () { if (t) clearTimeout(t); });
   }
 
-  app.also.forEach(function (u) { hit(u).catch(function () {}); });
+  function ready() {
+    clearInterval(ticker);
+    $("card").className = "card ready";
+    $("state").textContent = "Ready, opening " + app.name;
+    setTimeout(function () { location.replace(app.url); }, 400);
+  }
+
+  function failed() {
+    clearInterval(ticker);
+    $("card").className = "card failed";
+    $("state").textContent = "The server is not answering yet";
+    $("direct").textContent = "Try opening it directly";
+  }
 
   var tries = 0;
   function wake() {
     tries += 1;
-    hit(app.probe).then(function () {
-      clearInterval(ticker);
-      $("card").className = "card ready";
-      $("state").textContent = "Ready, opening " + app.name;
-      setTimeout(function () { location.replace(app.url); }, 400);
+    ask().then(function (res) {
+      if (res && res.ready) return ready();
+      if (tries < 2) { $("state").textContent = "Taking longer than usual, still trying"; return wake(); }
+      failed();
     }, function () {
-      if (tries < 4) {
-        $("state").textContent = "Still starting, trying again";
-        setTimeout(wake, 3000);
-        return;
-      }
-      clearInterval(ticker);
-      $("card").className = "card failed";
-      $("state").textContent = "The server is not answering yet";
-      $("direct").textContent = "Try opening it directly";
+      if (tries < 3) { $("state").textContent = "Still starting, trying again"; setTimeout(wake, 3000); return; }
+      failed();
     });
   }
   wake();
