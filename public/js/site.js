@@ -255,6 +255,30 @@
     strip.innerHTML = html + html;
   }
 
+  /* ── free hosting: start a project's server when a visitor shows interest ── */
+  // Render's free plan puts a server to sleep after 15 quiet minutes, and the first visit then waits
+  // about a minute. Pinging it as soon as someone points at or taps a card gives it a head start.
+  // Some apps keep their API on a second service; those are woken too.
+  var ALSO_WAKE = {
+    "hoshiyar-web.onrender.com": "https://hoshiyar-api.onrender.com/api/health",
+    "caselink-web.onrender.com": "https://caselink-api.onrender.com/api/health",
+    "sign-web-v7cj.onrender.com": "https://sign-ml-api.onrender.com/health"
+  };
+  var woken = {};
+  function ping(url) {
+    if (!url || woken[url]) return;
+    woken[url] = true;
+    try { fetch(url, { mode: "no-cors", cache: "no-store" }).catch(function () {}); } catch (e) { /* old browser */ }
+  }
+  function onRender(href) {
+    try { return /\.onrender\.com$/i.test(new URL(href).host); } catch (e) { return false; }
+  }
+  function wakeProject(href) {
+    if (!onRender(href)) return;
+    ping(href);
+    ping(ALSO_WAKE[new URL(href).host]);
+  }
+
   function renderProjects(projects) {
     var wrap = $("#mosaic");
     if (!wrap) return;
@@ -319,6 +343,13 @@
         go.target = "_blank";
         go.rel = "noopener noreferrer";
         body.appendChild(go);
+        if (onRender(href)) {
+          body.appendChild(el("p", "cold",
+            "Free hosting: if nobody has used it for 15 minutes, it takes up to a minute to start."));
+          ["pointerenter", "focusin", "touchstart"].forEach(function (ev) {
+            card.addEventListener(ev, function () { wakeProject(href); }, { passive: true, once: true });
+          });
+        }
       } else if (p.repo && safeUrl(p.repo)) {
         var gh = el("a", "go", "View code <s>&#8599;</s>");
         gh.href = safeUrl(p.repo);
