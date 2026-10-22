@@ -270,7 +270,8 @@
     [/sehat/i, ["https://sehat-g2f6.onrender.com/api/health"]],
     [/job.?match/i, ["https://jobmatch-ai-lee4.onrender.com/api/health"]],
     [/lead.?desk/i, ["https://leaddesk.onrender.com/api/health"]],
-    [/triage/i, ["https://triagedesk-ml.onrender.com/health"]]
+    [/lum[eé]ra/i, ["https://lumera-salon.onrender.com/api/health"]],
+    [/triage/i, ["https://triagedesk-r8pt.onrender.com/api/health", "https://triagedesk-ml.onrender.com/health"]]
   ];
   var woken = {};
   function ping(url) {
