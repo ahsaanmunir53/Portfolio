@@ -258,12 +258,20 @@
   /* ── free hosting: start a project's server when a visitor shows interest ── */
   // Render's free plan puts a server to sleep after 15 quiet minutes, and the first visit then waits
   // about a minute. Pinging it as soon as someone points at or taps a card gives it a head start.
-  // Some apps keep their API on a second service; those are woken too.
-  var ALSO_WAKE = {
-    "hoshiyar-web.onrender.com": "https://hoshiyar-api.onrender.com/api/health",
-    "caselink-web.onrender.com": "https://caselink-api.onrender.com/api/health",
-    "sign-web-v7cj.onrender.com": "https://sign-ml-api.onrender.com/health"
-  };
+  // Most apps now open from a static site that never sleeps, with the API on a second service;
+  // the rules below wake that API too. They match the project's title or link.
+  var ALSO_WAKE = [
+    [/hoshiyar/i, ["https://hoshiyar-api.onrender.com/api/health"]],
+    [/caselink/i, ["https://caselink-api.onrender.com/api/health"]],
+    [/sign.?bridge|sign-web|urdu-sign/i, ["https://sign-web-v7cj.onrender.com/api/status", "https://sign-ml-api.onrender.com/health"]],
+    [/qahva/i, ["https://qahva-cafe.onrender.com/api/health"]],
+    [/mahru/i, ["https://mahru-store.onrender.com/api/health"]],
+    [/monal/i, ["https://monal-ai.onrender.com/api/health"]],
+    [/sehat/i, ["https://sehat-g2f6.onrender.com/api/health"]],
+    [/job.?match/i, ["https://jobmatch-ai-lee4.onrender.com/api/health"]],
+    [/lead.?desk/i, ["https://leaddesk.onrender.com/api/health"]],
+    [/triage/i, ["https://triagedesk-ml.onrender.com/health"]]
+  ];
   var woken = {};
   function ping(url) {
     if (!url || woken[url]) return;
@@ -273,10 +281,13 @@
   function onRender(href) {
     try { return /\.onrender\.com$/i.test(new URL(href).host); } catch (e) { return false; }
   }
-  function wakeProject(href) {
+  function wakeProject(href, title) {
     if (!onRender(href)) return;
     ping(href);
-    ping(ALSO_WAKE[new URL(href).host]);
+    var key = (title || "") + " " + href;
+    ALSO_WAKE.forEach(function (rule) {
+      if (rule[0].test(key)) rule[1].forEach(ping);
+    });
   }
 
   function renderProjects(projects) {
@@ -347,7 +358,7 @@
           body.appendChild(el("p", "cold",
             "Free hosting: if nobody has used it for 15 minutes, it takes up to a minute to start."));
           ["pointerenter", "focusin", "touchstart"].forEach(function (ev) {
-            card.addEventListener(ev, function () { wakeProject(href); }, { passive: true, once: true });
+            card.addEventListener(ev, function () { wakeProject(href, p.title); }, { passive: true, once: true });
           });
         }
       } else if (p.repo && safeUrl(p.repo)) {
