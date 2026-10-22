@@ -1,20 +1,22 @@
 # Render's free plan puts the portfolio to sleep after 15 minutes without visitors, and the next
-# visitor then waits about a minute on Render's loading page. This pings it every 10 minutes on
-# weekdays from 01:00 to 09:00 UTC (09:00-17:00 Singapore, 06:00-14:00 Pakistan), about 190 hours
-# a month of Render's 750 free hours per workspace. Disable it when you do not need it.
+# visitor then waits about a minute on Render's loading page. This pings it every 10 minutes from
+# 01:00 to 18:59 UTC (06:00 to 23:59 Pakistan, 09:00 to 02:59 Singapore), every day.
 #
-# Set the repository variable SITE_URL (Settings -> Secrets and variables -> Actions -> Variables),
-# e.g. https://ahsaan-portfolio.onrender.com
+# Cost: about 18 hours a day, roughly 560 of Render's 750 free instance hours a month, shared by the
+# whole workspace. The other apps sleep most of the day, so they fit in the rest. If the workspace
+# ever runs short, narrow the hours in the cron line below.
+#
+# The address can be changed with the repository variable SITE_URL
+# (Settings -> Secrets and variables -> Actions -> Variables).
 name: Keep portfolio warm
 
 on:
   schedule:
-    - cron: "*/10 1-8 * * 1-5"
+    - cron: "*/10 1-18 * * *"
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
-    if: ${{ vars.SITE_URL != '' }}
     steps:
-      - run: curl -fsS --max-time 90 "${{ vars.SITE_URL }}/healthz" > /dev/null || true
+      - run: curl -fsS --max-time 90 "${{ vars.SITE_URL || 'https://ahsaan-portfolio.onrender.com' }}/healthz" > /dev/null || true
