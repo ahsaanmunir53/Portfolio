@@ -11,10 +11,22 @@
 
 const express = require("express");
 const store = require("../store");
+const { publicSite, loadPublicContent } = require("../content");
+const publish = require("../publish");
 const { verifyCredentials, issue, clear, currentUser, requireAdmin, configReport } =
   require("../middleware/auth");
 
 const router = express.Router();
+
+// Every successful change in the admin panel is published to the static site.
+router.use("/admin", (req, res, next) => {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.on("finish", () => {
+      if (res.statusCode < 400) publish.schedule();
+    });
+  }
+  next();
+});
 
 /* ------------------------------------------------------------- helpers ---- */
 
@@ -207,28 +219,9 @@ router.get("/auth/me", (req, res) => {
 
 /* -------------------------------------------------------------- public ---- */
 
-/** The CV blob is megabytes. It is served by /cv, never inlined here. */
-function publicSite(site) {
-  const out = Object.assign({}, site || {});
-  out.hasCv = Boolean(out.cvData);
-  delete out.cvData;
-  return out;
-}
-
 router.get("/content", async (req, res, next) => {
   try {
-    const [site, projects, experience, skills] = await Promise.all([
-      store.getSite(),
-      store.list("projects"),
-      store.list("experience"),
-      store.list("skills"),
-    ]);
-    res.json({
-      site: publicSite(site),
-      projects: projects.filter((p) => p.visible !== false),
-      experience: experience.filter((e) => e.visible !== false),
-      skills: skills.filter((s) => s.visible !== false),
-    });
+    res.json(await loadPublicContent());
   } catch (err) {
     next(err);
   }
@@ -250,6 +243,7 @@ router.get("/admin/content", requireAdmin, async (req, res, next) => {
       experience,
       skills,
       storage: store.getMode(),
+      publish: publish.mode(),
     });
   } catch (err) {
     next(err);
@@ -310,54 +304,6 @@ router.put("/admin/site", requireAdmin, async (req, res, next) => {
       payload.cvUpdatedAt = payload.cvData ? new Date().toISOString() : "";
     }
     res.json(publicSite(await store.saveSite(payload)));
-  } catch (err) {
-    next(err);
-  }
-});
-
-/* ------------------------------------------------- wake a sleeping app ---- */
-
-// Used by /open/<app>. The check runs here, not in the visitor's browser, because some apps send
-// Cross-Origin-Resource-Policy: same-origin, which makes a browser reject the answer even when the
-// server is up. Only these fixed addresses are ever fetched.
-const WAKE = {
-  triagedesk: {
-    probe: "https://triagedesk-r8pt.onrender.com/api/health",
-    also: ["https://triagedesk-ml.onrender.com/health"],
-  },
-  docmind: { probe: "https://docqa-3nqw.onrender.com/", also: [] },
-};
-const WAKE_DEADLINE_MS = 110_000;
-const waking = {}; // one wake per app at a time, shared by every visitor who asks
-
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-async function wakeUntilUp(app) {
-  const started = Date.now();
-  app.also.forEach((u) => fetch(u, { signal: AbortSignal.timeout(WAKE_DEADLINE_MS) }).catch(() => {}));
-  while (Date.now() - started < WAKE_DEADLINE_MS) {
-    try {
-      // Render holds the request while the server starts, so one call can take most of a minute.
-      const r = await fetch(app.probe, { signal: AbortSignal.timeout(60_000) });
-      r.body?.cancel().catch(() => {});
-      if (r.status < 500) return { ready: true, status: r.status, ms: Date.now() - started };
-    } catch (e) {
-      /* timed out or refused; try again */
-    }
-    await sleep(2000);
-  }
-  return { ready: false, ms: Date.now() - started };
-}
-
-router.get("/wake/:app", async (req, res, next) => {
-  try {
-    const key = String(req.params.app).toLowerCase();
-    const app = Object.prototype.hasOwnProperty.call(WAKE, key) ? WAKE[key] : null;
-    if (!app) return res.status(404).json({ error: "Unknown app." });
-    if (!waking[key]) waking[key] = wakeUntilUp(app).finally(() => delete waking[key]);
-    res.set("Cache-Control", "no-store").json(await waking[key]);
   } catch (err) {
     next(err);
   }

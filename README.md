@@ -65,6 +65,43 @@ entered in the admin panel is gone by morning. A free MongoDB Atlas cluster
 In Atlas, allow access from anywhere (`0.0.0.0/0`) under Network Access —
 Render's outbound IPs are not fixed on the free plan.
 
+### Static site (the public page never sleeps)
+
+On Render's free plan the server sleeps after 15 quiet minutes, and the next
+visitor waits about a minute on Render's loading page. So the public page is
+also published as a static site, `ahsaan-munir` in `render.yaml`, which
+never sleeps. `scripts/build-static.js` copies `public/`, reads the content
+and the CV from the server (`API_URL`) and saves them as `content.json` and
+a PDF. The admin panel stays on the server.
+
+Setup, once:
+
+1. Render → **Blueprints** → the Portfolio blueprint → **Sync** (or let it
+   sync by itself after the push). It creates `ahsaan-munir`. The first build
+   waits for the server to wake, so it can take a few minutes.
+2. Open `https://ahsaan-munir.onrender.com` and check the page and the CV.
+3. `ahsaan-munir` → **Settings → Deploy Hook**: copy it. It is a secret.
+4. `ahsaan-portfolio` → **Environment**, add two values and save:
+
+| Key | Value |
+|---|---|
+| `PUBLIC_SITE_URL` | `https://ahsaan-munir.onrender.com` |
+| `STATIC_DEPLOY_HOOK` | the Deploy Hook from step 3 |
+
+After that:
+
+- Old links to `ahsaan-portfolio.onrender.com` still work: the server sends
+  visitors to the static page (after one wait if it was asleep).
+- Every save in the admin panel rebuilds the static page about 30 seconds
+  later; the change shows within about two minutes. The badge at the top of
+  the admin panel says so, or warns when `STATIC_DEPLOY_HOOK` is missing.
+- The admin panel opens at `ahsaan-portfolio.onrender.com/admin`
+  (`ahsaan-munir.onrender.com/admin` redirects there).
+
+Render never gives a deleted service's `.onrender.com` address back, so do
+not delete `ahsaan-portfolio`: it serves the admin panel, the content and the
+old address.
+
 ### If the admin panel will not open
 
 Visit `/api/auth/config` on your deployed site. It returns booleans only, no
@@ -89,7 +126,7 @@ no S3, no Cloudinary. A cover lands around 100–250KB, well inside MongoDB's
 
 ## A trade-off worth knowing
 
-Content is fetched and rendered by JavaScript. That is what makes the admin
+Content is fetched (from `/content.json`) and rendered by JavaScript. That is what makes the admin
 panel possible, but it means a crawler reading the raw HTML sees an empty
 shell. Google runs JavaScript and will index it fine; some link-preview
 scrapers do not. The `<title>`, `<meta name="description">` and Open Graph
@@ -103,12 +140,17 @@ src/
   server.js          express app, startup checks
   seed.js            starter content, runs once on an empty store
   hash.js            password hashing helper
+  content.js         what the public page shows (/api/content, /content.json)
+  publish.js         rebuilds the static site after admin saves
   routes/api.js      public reads, admin writes, field whitelists
   middleware/auth.js single admin, JWT in an httpOnly cookie
   store/index.js     mongo or json behind one interface
   store/models.js    mongoose schemas
+scripts/
+  build-static.js    builds the static site into dist/
 public/
   index.html         site shell — content injected at runtime
+  open.html          waiting page for TriageDesk and DocMind (/open/<app>)
   admin.html         admin panel
   css/ js/
   Ahsaan-Munir-CV.pdf

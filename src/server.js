@@ -6,11 +6,27 @@ const cookieParser = require("cookie-parser");
 
 const store = require("./store");
 const api = require("./routes/api");
+const { loadPublicContent } = require("./content");
 const seed = require("./seed");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, "..", "public");
+
+/* Two services (render.yaml): the public page is a static site that never
+ * sleeps, and this server keeps the admin panel, the API and the CV. With
+ * PUBLIC_SITE_URL set, visitors who open this server's address are sent to
+ * the static site. */
+const PUBLIC_SITE_URL = (() => {
+  const raw = (process.env.PUBLIC_SITE_URL || "").trim();
+  if (!raw) return "";
+  try {
+    return new URL(/^https?:\/\//i.test(raw) ? raw : "https://" + raw).origin;
+  } catch (err) {
+    console.warn("[config] PUBLIC_SITE_URL is not a valid address; ignoring it.");
+    return "";
+  }
+})();
 
 // Cover images arrive as base64 in the JSON body, so the default 100kb
 // limit would reject every upload.
@@ -26,6 +42,23 @@ app.use((req, res, next) => {
 });
 
 app.use("/api", api);
+
+if (PUBLIC_SITE_URL) {
+  app.get(["/", "/index.html", "/open/:app"], (req, res) => {
+    const q = req.originalUrl.indexOf("?");
+    res.redirect(302, PUBLIC_SITE_URL + req.path + (q >= 0 ? req.originalUrl.slice(q) : ""));
+  });
+}
+
+// The page reads its copy from here; the static site has the same file, saved at build time.
+app.get("/content.json", async (req, res, next) => {
+  try {
+    res.setHeader("Cache-Control", "no-cache");
+    res.json(await loadPublicContent());
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.use(
   express.static(PUBLIC, {

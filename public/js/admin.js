@@ -584,6 +584,14 @@
         badge.className = "store warn";
         badge.title = "Set MONGODB_URI so your edits survive a restart.";
       }
+      // With the static site, a save reaches the public page after a rebuild.
+      if (data.publish === "static") {
+        badge.textContent += " · public page updates ~2 min after a save";
+      } else if (data.publish === "no-hook") {
+        badge.textContent += " · saves do not reach the public page yet";
+        badge.className = "store warn";
+        badge.title = "Set STATIC_DEPLOY_HOOK on this server (the static site's Deploy Hook).";
+      }
 
       $("#gate").classList.add("hidden");
       $("#app").classList.remove("hidden");

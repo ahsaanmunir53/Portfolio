@@ -1,6 +1,7 @@
 /* Portfolio front end.
-   Every piece of copy on this page comes from /api/content, which the admin
-   panel writes to. Nothing here is hard-coded except the shapes. */
+   Every piece of copy on this page comes from /content.json: the admin
+   panel's content, served by the server, or saved into the static site when
+   it is built. Nothing here is hard-coded except the shapes. */
 
 (function () {
   "use strict";
@@ -233,16 +234,18 @@
     var wc = $("#workCount");
     if (wc) wc.textContent = word;
 
-    /* /cv is served by the server, which sets the download header itself.
-       That matters on phones: a link with the `download` attribute is ignored
-       there and the PDF opens in a cramped built-in viewer instead. */
+    /* /cv sends the PDF with a download header (the server, or the static
+       site's header rules), which matters on phones: a link with the
+       `download` attribute is ignored there and the PDF opens in a cramped
+       built-in viewer instead. The static site reads the CV from its own
+       file (site.cvViewUrl), because it cannot read ?view=1. */
     var external = safeUrl(site.cvFile);
     ["#cvTop", "#cvHero", "#cvContact"].forEach(function (id) {
       var node = $(id);
       if (node) node.setAttribute("href", external || "/cv");
     });
     var viewer = $("#cvView");
-    if (viewer) viewer.setAttribute("href", external || "/cv?view=1");
+    if (viewer) viewer.setAttribute("href", external || site.cvViewUrl || "/cv?view=1");
   }
 
   function renderStrip(items) {
@@ -545,7 +548,7 @@
   }
 
   /* ── go ─────────────────────────────────────────────────────── */
-  fetch("/api/content", { headers: { Accept: "application/json" } })
+  fetch("/content.json", { headers: { Accept: "application/json" } })
     .then(function (r) {
       if (!r.ok) throw new Error("Content unavailable (" + r.status + ")");
       return r.json();

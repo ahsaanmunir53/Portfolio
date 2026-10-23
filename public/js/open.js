@@ -1,21 +1,24 @@
 /* Waiting room for the apps that are a single server on Render's free plan (the page and the API
    come from the same service, so there is no static site to open at once). The page loads from the
-   portfolio, wakes the app, counts the seconds and opens the app the moment it answers.
-   /open/<key> picks the app. */
+   portfolio's static site at once, wakes the app, counts the seconds and opens the app the moment
+   it answers. /open/<key> picks the app. */
 (function () {
   "use strict";
 
-  // The addresses the server checks are in src/routes/api.js (WAKE).
   var APPS = {
     triagedesk: {
       name: "TriageDesk",
       line: "AI that sorts support tickets and sends them to the right agent.",
-      url: "https://triagedesk-r8pt.onrender.com/"
+      url: "https://triagedesk-r8pt.onrender.com/",
+      probe: "https://triagedesk-r8pt.onrender.com/api/health",
+      also: ["https://triagedesk-ml.onrender.com/health"]
     },
     docmind: {
       name: "DocMind",
       line: "Ask questions of long PDFs and get answers that cite the page.",
-      url: "https://docqa-3nqw.onrender.com/"
+      url: "https://docqa-3nqw.onrender.com/",
+      probe: "https://docqa-3nqw.onrender.com/",
+      also: []
     }
   };
 
@@ -43,15 +46,23 @@
     $("secs").textContent = Math.round((Date.now() - started) / 1000) + "s";
   }, 1000);
 
-  // The portfolio's server does the waiting (/api/wake/<key>) and answers when the app is up.
-  // Checking from here would not work for every app: some send Cross-Origin-Resource-Policy,
-  // and the browser then rejects the answer even when the server is running.
-  function ask() {
+  // While a server starts, Render holds the request, so it ends only when the app is up.
+  // The request ending is the signal, however it ends: TriageDesk sends
+  // Cross-Origin-Resource-Policy: same-origin, so the browser rejects its answer even though
+  // the server answered. Only our own time limit counts as "not up yet".
+  function hit(url, ms) {
     var ctl = "AbortController" in window ? new AbortController() : null;
-    var t = ctl ? setTimeout(function () { ctl.abort(); }, 125000) : null;
-    return fetch("/api/wake/" + key, { cache: "no-store", signal: ctl ? ctl.signal : undefined })
-      .then(function (r) { return r.json(); })
-      .finally(function () { if (t) clearTimeout(t); });
+    var timedOut = false;
+    var t = setTimeout(function () { timedOut = true; if (ctl) ctl.abort(); }, ms);
+    return fetch(url, { mode: "no-cors", cache: "no-store", signal: ctl ? ctl.signal : undefined })
+      .then(function () { return true; }, function () { return !timedOut; })
+      .then(function (up) { clearTimeout(t); return up; });
+  }
+
+  app.also.forEach(function (u) { hit(u, 100000); });
+
+  function ask() {
+    return hit(app.probe, 100000).then(function (up) { return { ready: up }; });
   }
 
   function ready() {
@@ -72,11 +83,8 @@
   function wake() {
     tries += 1;
     ask().then(function (res) {
-      if (res && res.ready) return ready();
+      if (res.ready) return ready();
       if (tries < 2) { $("state").textContent = "Taking longer than usual, still trying"; return wake(); }
-      failed();
-    }, function () {
-      if (tries < 3) { $("state").textContent = "Still starting, trying again"; setTimeout(wake, 3000); return; }
       failed();
     });
   }
