@@ -1,3 +1,13 @@
+# Two free services:
+#
+#   ahsaan-munir      static site, the public page. Never sleeps, opens at once.
+#                     Built from the server's content (scripts/build-static.js).
+#   ahsaan-portfolio  Node server: admin panel, API, CV upload. Sleeps when idle.
+#
+# Two settings are added by hand in Render > ahsaan-portfolio > Environment,
+# after ahsaan-munir is live (README, "Static site"):
+#   PUBLIC_SITE_URL     https://ahsaan-munir.onrender.com  (old links then open the static page)
+#   STATIC_DEPLOY_HOOK  the Deploy Hook of ahsaan-munir    (admin saves rebuild it; secret)
 services:
   - type: web
     name: ahsaan-portfolio
@@ -17,3 +27,48 @@ services:
         generateValue: true
       - key: MONGODB_URI
         sync: false
+
+  - type: web
+    name: ahsaan-munir
+    runtime: static
+    buildCommand: node scripts/build-static.js
+    staticPublishPath: dist
+    pullRequestPreviewsEnabled: false
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /content.json
+        name: Cache-Control
+        value: no-cache
+      # Phones ignore the download attribute; this header makes "Download CV" download.
+      - path: /cv
+        name: Content-Disposition
+        value: attachment; filename="Ahsaan-Munir-CV.pdf"
+      - path: /cv-download.pdf
+        name: Content-Disposition
+        value: attachment; filename="Ahsaan-Munir-CV.pdf"
+    routes:
+      - type: redirect
+        source: /admin
+        destination: https://ahsaan-portfolio.onrender.com/admin
+      - type: rewrite
+        source: /cv
+        destination: /cv-download.pdf
+      - type: rewrite
+        source: /open/*
+        destination: /open.html
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: API_URL           # the server above; the build reads the content and the CV from it
+        value: https://ahsaan-portfolio.onrender.com
